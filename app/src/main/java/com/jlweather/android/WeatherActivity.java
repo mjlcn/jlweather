@@ -1,5 +1,6 @@
 package com.jlweather.android;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.support.v4.view.GravityCompat;
@@ -20,6 +21,7 @@ import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.jlweather.android.gson.Forecast;
 import com.jlweather.android.gson.Weather;
+import com.jlweather.android.service.AutoUpdateService;
 import com.jlweather.android.util.HttpUtil;
 import com.jlweather.android.util.Utility;
 
@@ -117,7 +119,7 @@ public class WeatherActivity extends AppCompatActivity {
 
         String weatherUrl = "https://free-api.heweather.com/s6/weather?"
                 +"location="+weatherId
-                +"&"+"key=3cd2fbbf24684b45acc8527551227cc1";
+                +"&"+"key="+"3cd2fbbf24684b45acc8527551227cc1";
         HttpUtil.sendOkHttpRequest(weatherUrl, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
@@ -163,34 +165,45 @@ public class WeatherActivity extends AppCompatActivity {
     }
 
     private void showWeatherInfo(Weather weather){
-        String locationName = weather.basic.locationName;
-        String degreee = weather.now.temperature + "℃";
-        String weatherInfo = weather.now.condInfo;
+        if(weather !=null && "ok".equals(weather.status)){
 
-        titleCity.setText(locationName);
-        degreeText.setText(degreee);
-        weatherInfoText.setText(weatherInfo);
+            String locationName = weather.basic.locationName;
+            String degreee = weather.now.temperature + "℃";
+            String weatherInfo = weather.now.condInfo;
 
-        forecastLayout.removeAllViews();
-        for(Forecast forecast: weather.forecastList){
-            View view = LayoutInflater.from(this).inflate(R.layout.forecast_item,forecastLayout,false);
+            titleCity.setText(locationName);
+            degreeText.setText(degreee);
+            weatherInfoText.setText(weatherInfo);
 
-            TextView dateText = (TextView)view.findViewById(R.id.date_text);
-            TextView infoDayText = (TextView)view.findViewById(R.id.infoDay_text);
-            TextView infoNightText = (TextView)view.findViewById(R.id.infoNight_text);
-            TextView maxText = (TextView)view.findViewById(R.id.max_text);
-            TextView minText = (TextView)view.findViewById(R.id.min_text);
+            forecastLayout.removeAllViews();
+            for(Forecast forecast: weather.forecastList){
+                View view = LayoutInflater.from(this).inflate(R.layout.forecast_item,forecastLayout,false);
 
-            dateText.setText(forecast.date);
-            infoDayText.setText(forecast.condInfoDay);
-            infoNightText.setText(forecast.condInfoNight);
-            maxText.setText(forecast.tmpMax);
-            minText.setText(forecast.tmpMin);
+                TextView dateText = (TextView)view.findViewById(R.id.date_text);
+                TextView infoDayText = (TextView)view.findViewById(R.id.infoDay_text);
+                TextView infoNightText = (TextView)view.findViewById(R.id.infoNight_text);
+                TextView maxText = (TextView)view.findViewById(R.id.max_text);
+                TextView minText = (TextView)view.findViewById(R.id.min_text);
 
-            forecastLayout.addView(view);
+                dateText.setText(forecast.date);
+                infoDayText.setText(forecast.condInfoDay);
+                infoNightText.setText(forecast.condInfoNight);
+                maxText.setText(forecast.tmpMax);
+                minText.setText(forecast.tmpMin);
+
+                forecastLayout.addView(view);
+            }
+
+            weatherLayout.setVisibility(View.VISIBLE);
+
+            //
+            Intent intent = new Intent(this, AutoUpdateService.class);
+            startService(intent);
+
+        }else {
+            Toast.makeText(WeatherActivity.this,
+                    "Failed to get message",Toast.LENGTH_SHORT).show();
         }
-
-        weatherLayout.setVisibility(View.VISIBLE);
     }
 
     private void loadBingPic(){
