@@ -6,6 +6,7 @@ import com.google.gson.Gson;
 import com.jlweather.android.db.City;
 import com.jlweather.android.db.County;
 import com.jlweather.android.db.Province;
+import com.jlweather.android.gson.AQI;
 import com.jlweather.android.gson.Weather;
 
 import org.json.JSONArray;
@@ -30,6 +31,21 @@ public class Utility {
         }
         return null;
     }
+
+    //AQI
+    public static AQI handleAQIResponse(String response){
+        try{
+            JSONObject jsonObject = new JSONObject(response);
+            JSONArray jsonArray = jsonObject.getJSONArray("HeWeather6");
+            String AQIContent = jsonArray.getJSONObject(0).toString();
+            return new Gson().fromJson(AQIContent,AQI.class);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
 
 
     //Province

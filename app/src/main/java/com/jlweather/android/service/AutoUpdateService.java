@@ -11,6 +11,7 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 
 import com.jlweather.android.WeatherActivity;
+import com.jlweather.android.gson.AQI;
 import com.jlweather.android.gson.Weather;
 import com.jlweather.android.util.HttpUtil;
 import com.jlweather.android.util.Utility;
@@ -76,6 +77,30 @@ public class AutoUpdateService extends Service {
 
                 }
             });
+
+            String aqiUrl = "https://free-api.heweather.com/s6/air?"
+                    +"location="+weatherId
+                    +"&"+"key="+userKey;
+            HttpUtil.sendOkHttpRequest(aqiUrl, new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    e.printStackTrace();
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    String responseText = response.body().string();
+                    AQI aqiTemp = Utility.handleAQIResponse(responseText);
+                    if(aqiTemp != null && "ok".equals(aqiTemp.status)){
+                        SharedPreferences.Editor editor = PreferenceManager
+                                .getDefaultSharedPreferences(AutoUpdateService.this).edit();
+                        editor.putString("aqi",responseText);
+                        editor.apply();
+                    }
+                }
+            });
+
+
         }
 
     }

@@ -19,6 +19,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.jlweather.android.gson.AQI;
 import com.jlweather.android.gson.Forecast;
 import com.jlweather.android.gson.Weather;
 import com.jlweather.android.service.AutoUpdateService;
@@ -43,6 +44,12 @@ public class WeatherActivity extends AppCompatActivity {
     //forecast.xml
     private LinearLayout forecastLayout;
 
+
+    //aqi.xml
+
+    private TextView aqiText;
+    private TextView pm25Text;
+    //
     private ImageView bingPicImg;
 
     //
@@ -68,6 +75,8 @@ public class WeatherActivity extends AppCompatActivity {
         swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
         drawerLayout = (DrawerLayout)findViewById(R.id.drawer_layout);
         navButton = (Button)findViewById(R.id.nav_button);
+        aqiText = (TextView)findViewById(R.id.aqi_text);
+        pm25Text = (TextView)findViewById(R.id.pm25_text);
 
         //
         bingPicImg = (ImageView)findViewById(R.id.bing_pic_img);
@@ -78,10 +87,14 @@ public class WeatherActivity extends AppCompatActivity {
         String weatherString = prefs.getString("weather",null);
         final String weatherId;
 
-        if(weatherString != null){
+        String aqiString = prefs.getString("aqi",null);
+
+        if(weatherString != null && aqiString !=null){
             Weather weather = Utility.handleWeatherResponse(weatherString);
+            AQI aqi = Utility.handleAQIResponse(aqiString);
             weatherId = weather.basic.weatherId;
             showWeatherInfo(weather);
+            showAQIInfo(aqi);
         }else {
             //
             weatherId = getIntent().getStringExtra("weather_id");
@@ -114,10 +127,17 @@ public class WeatherActivity extends AppCompatActivity {
     }
 
     public void  requestWeather(final String weatherId){
-//        String weatherUrl = "http://guolin.tech/api/weather?cityid="+
-//                weatherId+"&key=bc0418b57b2d4918819d3974ac1285d9";
 
+        requestWeatherData(weatherId);
+        requestAQIData(weatherId);
+
+        loadBingPic();
+
+    }
+
+    public void requestWeatherData(final String weatherId){
         final String userKey = "3cd2fbbf24684b45acc8527551227cc1";
+
         String weatherUrl = "https://free-api.heweather.com/s6/weather?"
                 +"location="+weatherId
                 +"&"+"key="+userKey;
@@ -130,7 +150,7 @@ public class WeatherActivity extends AppCompatActivity {
                     public void run() {
                         Toast.makeText(WeatherActivity.this,
                                 "Failed to connect server",Toast.LENGTH_SHORT).show();
-                        swipeRefresh.setRefreshing(false);
+//                        swipeRefresh.setRefreshing(false);
                     }
                 });
             }
@@ -152,16 +172,70 @@ public class WeatherActivity extends AppCompatActivity {
                             showWeatherInfo(weather);
                         }else {
                             Toast.makeText(WeatherActivity.this,
-                                    "Failed to get message --- ",Toast.LENGTH_SHORT).show();
+                                    "Failed to get weather message --- ",Toast.LENGTH_SHORT).show();
                         }
-                        swipeRefresh.setRefreshing(false);
+//                        swipeRefresh.setRefreshing(false);
                     }
                 });
 
             }
         });
+    }
 
-        loadBingPic();
+    public void requestAQIData(final String weatherId){
+        //AQI
+        final String userKey = "3cd2fbbf24684b45acc8527551227cc1";
+        String aqiUrl = "https://free-api.heweather.com/s6/air?"
+                +"location="+weatherId
+                +"&"+"key="+userKey;
+        HttpUtil.sendOkHttpRequest(aqiUrl, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                e.printStackTrace();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(WeatherActivity.this,
+                                "Failed to connect server",Toast.LENGTH_SHORT).show();
+                        swipeRefresh.setRefreshing(false);
+                    }
+                });
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                final String responseText = response.body().string();
+                Log.d("Response//ppz", responseText);
+                final AQI aqi = Utility.handleAQIResponse(responseText);
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if(aqi != null && "ok".equals(aqi.status)){
+                            SharedPreferences.Editor editor = PreferenceManager
+                                    .getDefaultSharedPreferences(WeatherActivity.this).edit();
+                            editor.putString("aqi",responseText);
+                            editor.apply();
+                            showAQIInfo(aqi);
+
+                        }else {
+                            Toast.makeText(WeatherActivity.this,
+                                    "Failed to get aqi message --- ",Toast.LENGTH_SHORT).show();
+                        }
+                        swipeRefresh.setRefreshing(false);
+                    }
+                });
+            }
+        });
+    }
+
+
+    private void showAQIInfo(AQI aqi){
+        String aqiInfo = aqi.aqiCityity.aqi;
+        String pm25Info = aqi.aqiCityity.pm25;
+
+        aqiText.setText(aqiInfo);
+        pm25Text.setText(pm25Info);
 
     }
 
@@ -186,11 +260,13 @@ public class WeatherActivity extends AppCompatActivity {
                 TextView maxText = (TextView)view.findViewById(R.id.max_text);
                 TextView minText = (TextView)view.findViewById(R.id.min_text);
 
+                String maxTmp = forecast.tmpMax+"°";
+                String minTmp = forecast.tmpMin+"°";
                 dateText.setText(forecast.date);
                 infoDayText.setText(forecast.condInfoDay);
                 infoNightText.setText(forecast.condInfoNight);
-                maxText.setText(forecast.tmpMax);
-                minText.setText(forecast.tmpMin);
+                maxText.setText(maxTmp);
+                minText.setText(minTmp);
 
                 forecastLayout.addView(view);
             }
