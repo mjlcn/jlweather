@@ -19,6 +19,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.jlweather.android.db.City;
+import com.jlweather.android.db.County;
 import com.jlweather.android.gson.AQI;
 import com.jlweather.android.gson.Forecast;
 import com.jlweather.android.gson.Weather;
@@ -26,7 +28,10 @@ import com.jlweather.android.service.AutoUpdateService;
 import com.jlweather.android.util.HttpUtil;
 import com.jlweather.android.util.Utility;
 
+import org.litepal.crud.DataSupport;
+
 import java.io.IOException;
+import java.util.List;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -129,7 +134,7 @@ public class WeatherActivity extends AppCompatActivity {
     public void  requestWeather(final String weatherId){
 
         requestWeatherData(weatherId);
-        requestAQIData(weatherId);
+//        requestAQIData(weatherId);
 
         loadBingPic();
 
@@ -185,7 +190,8 @@ public class WeatherActivity extends AppCompatActivity {
     public void requestAQIData(final String weatherId){
         //AQI
         final String userKey = "3cd2fbbf24684b45acc8527551227cc1";
-        String aqiUrl = "https://free-api.heweather.com/s6/air?"
+
+        String aqiUrl = "https://free-api.heweather.com/s6/air/now?"
                 +"location="+weatherId
                 +"&"+"key="+userKey;
         HttpUtil.sendOkHttpRequest(aqiUrl, new Callback() {
@@ -241,6 +247,9 @@ public class WeatherActivity extends AppCompatActivity {
 
     private void showWeatherInfo(Weather weather){
         if(weather !=null && "ok".equals(weather.status)){
+
+            String parentCity = weather.basic.parentCity;
+            requestAQIData(parentCity);
 
             String locationName = weather.basic.locationName;
             String degreee = weather.now.temperature + "℃";

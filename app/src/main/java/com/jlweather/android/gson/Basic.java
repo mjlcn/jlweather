@@ -13,4 +13,7 @@ public class Basic {
 
     @SerializedName("cid")
     public String weatherId;
+
+    @SerializedName("parent_city")
+    public String parentCity;
 }
